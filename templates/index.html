@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>piesy</title>
+</head>
+<body>
+    <ul>
+        {% for pies in piesy %}
+            <li>
+                {{ pies[0] }} - {{ pies[1] }}
+            </li>
+        {% endfor %}
+    </ul>
+    <form action="/dodaj" method="post"> 
+        <input type="text" name="imie">
+        <input type="text" name="wiek">
+        <button type="submit">dodaj</button>
+    </form>
+
+</body>
+</html>
