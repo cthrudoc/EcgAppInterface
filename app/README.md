@@ -1,0 +1,2 @@
+
+Dependancies : flask, flask-login, flask-sqlalchemy, flask-wtf, flask-migrate
