@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <table>
+        <tr valign="top">
+            <td><h1>User: {{ user.username }}</h1></td>
+            
+            {% for time in times %}
+                <li>{{time}}</li>
+            {% endfor %}
+            
+        </tr>
+    </table>
+    <hr>
+    {% for post in posts %}
+        {% include '_post.html' %}
+    {% endfor %}
+{% endblock %}

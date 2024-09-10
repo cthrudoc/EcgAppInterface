@@ -4,7 +4,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 import sqlalchemy as sa
 from app import app, db
 from app.forms import LoginForm, RegistrationForm, EditProfileForm
-from app.models import User
+from app.models import User, User_Login
 from datetime import datetime, timezone
 
 @app.before_request
@@ -42,6 +42,11 @@ def login():
             flash('Invalid username or password')
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
+
+        login_happened = User_Login(user_id = user.id) # tracking user login
+        db.session.add(login_happened)
+        db.session.commit()
+
         next_page = request.args.get('next')
         if not next_page or urlsplit(next_page).netloc != '':
             next_page = url_for('index')
@@ -94,3 +99,21 @@ def edit_profile():
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile',
                            form=form)
+
+@app.route('/testing', methods=['GET','POST'])
+@login_required
+def testing():
+    username = current_user.username
+    user = db.first_or_404(sa.select(User).where(User.username == username))
+    times = db.session.execute(sa.select(User_Login.login_time).join(User).where(User.username == username)).scalars().all()
+    print(times)
+    return render_template('testing.html', user=user , times=times )
+
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    return render_template('500.html'), 500
