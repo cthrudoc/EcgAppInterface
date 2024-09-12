@@ -17,16 +17,7 @@ def before_request():
 @app.route('/index')
 @login_required
 def index():
-    posts = [
-        {
-            'author': {'username': 'John'},
-            'body': 'Beautiful day in Portland!'
-        },
-        {
-            'author': {'username': 'Susan'},
-            'body': 'The Avengers movie was so cool!'
-        }
-    ]
+    posts = []
     return render_template('index.html', title='Home', posts=posts)
 
 
@@ -61,6 +52,7 @@ def logout():
 
 
 @app.route('/register', methods=['GET', 'POST'])
+@login_required
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -117,3 +109,8 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
+
+@app.route('/admin', methods=['GET','POST'])
+@login_required
+def admin():
+    return render_template("admin.html")
