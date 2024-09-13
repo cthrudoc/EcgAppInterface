@@ -13,10 +13,11 @@ class User(UserMixin, db.Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
+    last_chart: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, deafult=1)
 
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author')
     login_times: so.WriteOnlyMapped['User_Login'] = so.relationship(back_populates='user')
-    user_votes: so.WriteOnlyMapped['Chart']
+    user_votes: so.WriteOnlyMapped['Vote'] = so.relationship(back_populates="interacter")
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -51,13 +52,17 @@ class User_Login(db.Model):
 
 class Vote(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
+    user_vote: so.Mapped[int] = so.mapped_column(sa.Integer)
+    vote_time: so.Mapped[datetime] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
+    interacting_user: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),index=True)
     
-    chart: so.Mapped[Chart] = so.relationship(back_populates='user_votes')
+    interacter: so.Mapped[User] = so.relationship(back_populates = "user_votes")
+    chart: so.Mapped["Chart"] = so.relationship(back_populates='chart_votes') # "Chart" zamiast Chart ponieważ klasa Chart jeszcze nie istnieje i bez "" jest błąd
 
 class Chart(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    chart_data: so.Mapped[str] = so.mapped_column(sa.String(100))
+    chart_data: so.Mapped[str] = so.mapped_column(sa.String(100), default="[PLACEHOLDER]")
 
-    user_votes: so.WriteOnlyMapped[Vote] = so.relationship(back_populates='chart')
+    chart_votes: so.WriteOnlyMapped[Vote] = so.relationship(back_populates='chart')
 
 

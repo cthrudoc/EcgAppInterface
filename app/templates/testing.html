@@ -15,4 +15,29 @@
     {% for post in posts %}
         {% include '_post.html' %}
     {% endfor %}
+
+    <!-- Testowanie wyświetlania wszystkich wykresó i głosów użytkownika na nie -->
+
+    <table>
+        <caption>
+            wykresy użytkownika {{ user.username }}
+        </caption>
+        <thead>
+            <tr>
+              <th scope="col">ID wykresu</th>
+              <th scope="col">Głos</th>
+              <th scope="col">Komentarz</th>
+            </tr>
+          </thead>
+        <tbody>
+            {% for chart in chart_data %}
+                <tr>
+                    <th scope="row">{{ chart_id }}</th>
+                    <td>{{ requester_vote }}</td>
+                </tr>
+        </tbody>
+    </table>
+
+    <!-- testowanie wyświetlania pojedynczego wykresu dla /wykres -->
+
 {% endblock %}

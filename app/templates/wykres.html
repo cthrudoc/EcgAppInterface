@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>{{ chart_data_to_display }}</h1>
+
+    <form method="POST", action="{{ urlfor('wykres'), chart_id=chart.id}}">
+        <button type="submit", value="0", name="vote = 0">+</button>
+        <button type="submit", value="1", name="vote = 1">+</button>
+    </form>
+
+{% endblock %}
