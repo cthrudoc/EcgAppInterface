@@ -53,7 +53,6 @@ def logout():
 
 
 @app.route('/register', methods=['GET', 'POST'])
-@login_required
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
@@ -106,9 +105,9 @@ def testing():
     charts = db.session.execute(sa.select(Chart)).scalars().all()  
     votes = db.session.execute(sa.select(Vote).where(Vote.interacting_user == user.id)).scalars().all()
 
-    votes_by_chart = {}
-    for vote in votes:
-        if vote.chart_id not in votes_by_chart:
+    votes_by_chart = {} # [TODO] lista potrzebna ze względu na brak systemu historii głosowania, żeby się wykresy nie dublowały
+    for vote in votes: # zrobienie listy głosów 
+        if vote.chart_id not in votes_by_chart: 
             votes_by_chart[vote.chart_id] = vote.user_vote
     
     chart_to_display = []
@@ -119,7 +118,10 @@ def testing():
             "requester_vote": requester_vote
         })
 
-    return render_template('testing.html', user=user , times=times, chart_data=chart_to_display )
+    # wywoływanie numeru ostatniego wykresu : 
+    last_chart = user.last_chart
+
+    return render_template('testing.html', user=user , times=times, chart_data=chart_to_display , last_chart = last_chart )
 
 @app.errorhandler(404)
 def not_found_error(error):
@@ -148,10 +150,17 @@ def wykres():
     user.last_chart = chart_id
     db.session.commit()
     #zapis oceny
-    submitted_vote = int(request.form[Post])
-    new_vote = Vote(user_vote = submitted_vote, interacting_user = user.id, chart_id = chart.id)
-    user.last_chart = int(chart_id) + 1
-    db.session.add(new_vote)
-    db.session.commit()
+    submitted_vote = request.args.get('vote')
+    if submitted_vote is not None:
+        new_vote = Vote(user_vote = submitted_vote, interacting_user = user.id, chart_id = chart.id)
+        db.session.add(new_vote)
+        db.session.commit()
+        user.last_chart = int(chart_id) + 1 # [TODO] zrób lepszy system 
+        db.session.commit()
 
     return render_template("wykres.html", chart_data=chart_data, chart_id = chart_id)
+
+@app.route('/testing_addwykres', methods=['GET','POST'])
+@login_required
+def testing_addwykres():
+    return render_template("testing_addwykres")
