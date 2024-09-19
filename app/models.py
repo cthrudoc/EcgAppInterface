@@ -13,7 +13,7 @@ class User(UserMixin, db.Model):
     password_hash: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
-    last_chart: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, deafult=1)
+    last_chart: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, default=1)
 
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author')
     login_times: so.WriteOnlyMapped['User_Login'] = so.relationship(back_populates='user')
@@ -43,18 +43,19 @@ class Post(db.Model):
     def __repr__(self):
         return '<Post {}>'.format(self.body)
     
-class User_Login(db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
+class User_Login(db.Model): 
+    id: so.Mapped[int] = so.mapped_column(primary_key=True) 
     user_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),index=True) # !!! WHY DOES IT WORK ???
-    login_time: so.Mapped[datetime] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
+    login_time: so.Mapped[datetime] = so.mapped_column(default=lambda: datetime.now(timezone.utc)) 
     
     user: so.Mapped[User] = so.relationship(back_populates='login_times')
 
-class Vote(db.Model):
-    id: so.Mapped[int] = so.mapped_column(primary_key=True)
-    user_vote: so.Mapped[int] = so.mapped_column(sa.Integer)
-    vote_time: so.Mapped[datetime] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
+class Vote(db.Model): 
+    id: so.Mapped[int] = so.mapped_column(primary_key=True) 
+    user_vote: so.Mapped[int] = so.mapped_column(sa.Integer) 
+    vote_time: so.Mapped[datetime] = so.mapped_column(default=lambda: datetime.now(timezone.utc)) 
     interacting_user: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),index=True)
+    chart_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("chart.id"), index=True) # "Chart.id" bo klasa Chart jest zdefiniowana po klasie Vote
     
     interacter: so.Mapped[User] = so.relationship(back_populates = "user_votes")
     chart: so.Mapped["Chart"] = so.relationship(back_populates='chart_votes') # "Chart" zamiast Chart ponieważ klasa Chart jeszcze nie istnieje i bez "" jest błąd

@@ -96,27 +96,28 @@ def edit_profile():
 @app.route('/testing', methods=['GET','POST'])
 @login_required
 def testing():
-    username = current_user.username
-    user = db.first_or_404(sa.select(User).where(User.username == username))
-    times = db.session.execute(sa.select(User_Login.login_time).join(User).where(User.username == username)).scalars().all()
+    # wyświetlanie wszystkich czasów loginów 
+    user = db.first_or_404(sa.select(User).where(User.id == current_user.id))
+    times = db.session.execute(sa.select(User_Login.login_time).join(User).where(User.username == user.username)).scalars().all()
     print(times)
 
-
     # wyświetlanie listy wykresów i oceny użytkownika 
-    user_id = current_user.id
-    chart_data = db.session.query(Chart).options(so.selectinload(Chart.chart_votes), so.selectinload(Vote.interacter))
-    chart_to_display = [] 
-    for chart in chart_data:
-        for vote in Chart.chart_votes:
-            requester_vote = None # resetujemy wartość do niczego żeby przy następnej pętli nie przypisało tej samej wartości (jeżeli następny chart nie ma głosu to zostałby z poprzedniej pętli)
-            if Vote.interacter == user_id: 
-                requester_vote = Vote.user_vote
-                break
-        
-        chart_to_display.append(
-            {"chart_id" : Chart.id} , 
-            {"requester_vote" : requester_vote } 
-        )
+
+    charts = db.session.execute(sa.select(Chart)).scalars().all()  
+    votes = db.session.execute(sa.select(Vote).where(Vote.interacting_user == user.id)).scalars().all()
+
+    votes_by_chart = {}
+    for vote in votes:
+        if vote.chart_id not in votes_by_chart:
+            votes_by_chart[vote.chart_id] = vote.user_vote
+    
+    chart_to_display = []
+    for chart in charts:
+        requester_vote = votes_by_chart.get(chart.id, None)
+        chart_to_display.append({
+            "chart_id": chart.id,
+            "requester_vote": requester_vote
+        })
 
     return render_template('testing.html', user=user , times=times, chart_data=chart_to_display )
 
@@ -137,16 +138,20 @@ def admin():
 @app.route('/wykres', methods=['GET','POST'])
 @login_required
 def wykres():
-   # wyświetlanie pojedynczego wykresu
-    user_id = current_user.id
-    chart_data = db.session.execute(sa.select(Chart.chart_data).where(Chart.id == current_user.last_chart)).scalar_one_or_none()
-    chart_id = db.session.execute(sa.select(Chart.id).where(Chart.id == current_user.last_chart)).scalar_one_or_none()
-    ## zapisywanie wyświetlanego wykresu jako ostatniego zapisanego
-    current_user.last_chart = chart_id
+    # wczytanie obiektu użytkownik
+    user = db.first_or_404(sa.select(User).where(User.id == current_user.id))
+    # wyświetlanie pojedynczego, ostatniego wykresu
+    chart = db.first_or_404(sa.select(Chart).where(Chart.id == user.last_chart))
+    chart_id = chart.id
+    chart_data = chart.chart_data
+    # zapisywanie wyświetlanego wykresu jako ostatniego zapisanego
+    user.last_chart = chart_id
     db.session.commit()
     #zapis oceny
     submitted_vote = int(request.form[Post])
-    new_vote = Vote()
+    new_vote = Vote(user_vote = submitted_vote, interacting_user = user.id, chart_id = chart.id)
+    user.last_chart = int(chart_id) + 1
     db.session.add(new_vote)
+    db.session.commit()
 
-    return render_template("wykres.html", chart_data_to_display=chart_data)
+    return render_template("wykres.html", chart_data=chart_data, chart_id = chart_id)

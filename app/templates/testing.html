@@ -24,20 +24,18 @@
         </caption>
         <thead>
             <tr>
-              <th scope="col">ID wykresu</th>
-              <th scope="col">Głos</th>
-              <th scope="col">Komentarz</th>
+            <th scope="col">ID wykresu</th>
+            <th scope="col">Głos</th>
+            <th scope="col">Komentarz</th>
             </tr>
-          </thead>
+        </thead>
         <tbody>
             {% for chart in chart_data %}
                 <tr>
-                    <th scope="row">{{ chart_id }}</th>
-                    <td>{{ requester_vote }}</td>
+                    <th scope="row">{{ chart.chart_id }}</th>
+                    <td>{{ chart.requester_vote }}</td>
                 </tr>
+            {% endfor %}
         </tbody>
     </table>
-
-    <!-- testowanie wyświetlania pojedynczego wykresu dla /wykres -->
-
 {% endblock %}
