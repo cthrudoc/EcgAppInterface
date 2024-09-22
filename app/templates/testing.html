@@ -32,7 +32,11 @@
         <tbody>
             {% for chart in chart_data %}
                 <tr>
-                    <th scope="row">{{ chart.chart_id }}</th>
+                    <th scope="row">
+                        <a href="{{ url_for('wykres', chart_id=chart.chart_id) }}">
+                            {{ chart.chart_id }}
+                        </a>
+                    </th>
                     <td>{{ chart.requester_vote }}</td>
                 </tr>
             {% endfor %}

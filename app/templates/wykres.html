@@ -4,9 +4,12 @@
     <h1>{{ chart_id }}, {{ chart_data }}</h1>
 
     <form method="GET">
-        <input type="hidden" name="chard_id" value="{{ chart_id }}">
+        <input type="hidden" name="chart_id" value="{{ chart_id }}">
         <button type="submit" value="0" name="vote">Głos -</button>
         <button type="submit" value="1" name="vote">Głos +</button>
     </form>
+
+    <a href="{{ url_for('wykres', chart_id=chart_id-1) }}">Previous Chart</a>
+    <a href="{{ url_for('wykres', chart_id=chart_id+1) }}">Next Chart</a>
 
 {% endblock %}

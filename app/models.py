@@ -56,7 +56,8 @@ class Vote(db.Model):
     vote_time: so.Mapped[datetime] = so.mapped_column(default=lambda: datetime.now(timezone.utc)) 
     interacting_user: so.Mapped[int] = so.mapped_column(sa.ForeignKey(User.id),index=True)
     chart_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey("chart.id"), index=True) # "Chart.id" bo klasa Chart jest zdefiniowana po klasie Vote
-    
+    revision_number: so.Mapped[int] = so.mapped_column(sa.Integer, nullable=False) # wersja głosu
+
     interacter: so.Mapped[User] = so.relationship(back_populates = 'user_votes')
     chart: so.Mapped["Chart"] = so.relationship(back_populates = 'chart_votes') # "Chart" zamiast Chart ponieważ klasa Chart jeszcze nie istnieje i bez "" jest błąd
 
