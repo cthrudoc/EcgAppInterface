@@ -2,9 +2,9 @@
 <html>
     <head>
         {% if title %}
-        <title>{{ title }} - Microblog</title>
+        <title>{{ title }} - ECGApp</title>
         {% else %}
-        <title>Welcome to Microblog</title>
+        <title>ECGApp</title>
         {% endif %}
     </head>
     <body>
@@ -12,10 +12,11 @@
             Microblog:
             <a href="{{ url_for('index') }}">Home</a>
             <a href="{{ url_for('testing') }}">Testing</a>
-            <a href="{{ url_for('wykres') }}">Wykres</a>
+            <a> || </a>
             {% if current_user.is_anonymous %}
             <a href="{{ url_for('login') }}">Login</a>
             {% else %}
+            <a href="{{ url_for('wykres') }}">Wykres</a>
             <a href="{{ url_for('user', username=current_user.username) }}">Profile</a>
             <a href="{{ url_for('logout') }}">Logout</a>
             {% endif %}

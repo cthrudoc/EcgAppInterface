@@ -1,6 +1,7 @@
 from urllib.parse import urlsplit
-from flask import render_template, flash, redirect, url_for, request
+from flask import render_template, flash, redirect, url_for, request, abort
 from flask_login import login_user, logout_user, current_user, login_required
+from functools import wraps
 import sqlalchemy as sa
 import sqlalchemy.orm as so
 from app import app, db
@@ -14,18 +15,36 @@ def before_request():
         current_user.last_seen = datetime.now(timezone.utc)
         db.session.commit()
 
+def admin_required(f):
+    @wraps
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            abort(403)
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_prohibited(f):
+    @wraps
+    def decorated_function(*args, **kwargs):
+        if current_user.is_admin: 
+            abort(403) 
+        return f(*args, **kwargs) 
+    return decorated_function 
+
+
 @app.route('/')
 @app.route('/index')
 @login_required
 def index():
-    posts = []
-    return render_template('index.html', title='Home', posts=posts)
+    return render_template('index.html', title='Home')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        if current_user.is_admin == True:
+            return redirect(url_for('admin'))
+        return redirect(url_for('user', username=current_user.username))
     form = LoginForm()
     if form.validate_on_submit():
         user = db.session.scalar(
@@ -35,13 +54,13 @@ def login():
             return redirect(url_for('login'))
         login_user(user, remember=form.remember_me.data)
 
-        login_happened = User_Login(user_id = user.id) # tracking user login
-        db.session.add(login_happened)
+        login_happened = User_Login(user_id = user.id) # śledzenie logowania 
+        db.session.add(login_happened) # zapisywanie logowania 
         db.session.commit()
 
         next_page = request.args.get('next')
         if not next_page or urlsplit(next_page).netloc != '':
-            next_page = url_for('index')
+            next_page = url_for('admin') if user.is_admin else url_for('user', username=user.username)
         return redirect(next_page)
     return render_template('login.html', title='Sign In', form=form)
 
@@ -49,13 +68,13 @@ def login():
 @app.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('index'))
+    return redirect(url_for('login'))
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('index'))
+        return redirect(url_for('login'))
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
@@ -66,16 +85,13 @@ def register():
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
 
+
 @app.route('/user/<username>')
 @login_required
+@admin_prohibited
 def user(username):
-    user = db.first_or_404(sa.select(User).where(User.username == username))
-    posts = [
-        {'author': user, 'body': 'Test post #1'},
-        {'author': user, 'body': 'Test post #2'}
-    ]
-
     user = db.first_or_404(sa.select(User).where(User.id == current_user.id))
+    username = user.username
 
     # wyświetlanie listy wykresów i głosy użytkownika 
 
@@ -113,10 +129,11 @@ def user(username):
     last_chart = user.last_chart
 
     return render_template(
-        'user.html', user=user, posts=posts, 
+        'user.html', user=user, 
         chart_data=chart_to_display , last_chart = last_chart , 
         next_page = next_page , prev_page = prev_page , total_pages = total_pages , current_page = page 
         )
+
 
 @app.route('/edit_profile', methods=['GET', 'POST'])
 @login_required
@@ -133,6 +150,7 @@ def edit_profile():
         form.about_me.data = current_user.about_me
     return render_template('edit_profile.html', title='Edit Profile',
                            form=form)
+
 
 @app.route('/testing', methods=['GET','POST'])
 @login_required
@@ -171,23 +189,20 @@ def testing():
 
     return render_template('testing.html', user=user , times=times, chart_data=chart_to_display , last_chart = last_chart )
 
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
+
 
 @app.errorhandler(500)
 def internal_error(error):
     db.session.rollback()
     return render_template('500.html'), 500
 
-@app.route('/admin', methods=['GET','POST'])
-@login_required
-def admin():
-    return render_template("admin.html")
-
-
 @app.route('/wykres', methods=['GET','POST'])
 @login_required
+@admin_prohibited
 def wykres(): 
     user = db.first_or_404(sa.select(User).where(User.id == current_user.id)) # wczytanie obiektu użytkownik 
     chart_id = request.args.get('chart_id', default = None, type = int)
@@ -218,16 +233,21 @@ def wykres():
         db.session.add(new_vote)
         db.session.commit()
 
-    return render_template("wykres.html", chart_data=chart_data, chart_id = chart_id)
+    return render_template("wykres.html", chart_data=chart_data, chart_id = chart_id)    
+
+@app.route('/admin')
+@admin_required
+def admin():
+    return render_template("admin.html")
 
 
-""" Previous version
+@app.route('/admin/charts')
+@admin_required
+def admin_wykresy():
+    return render_template('admin_charts.html')
 
 
-
-"""    
-    
-@app.route('/testing_addwykres', methods=['GET','POST'])
-@login_required
-def testing_addwykres():
-    return render_template("testing_addwykres")
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    return render_template('admin_users.html')

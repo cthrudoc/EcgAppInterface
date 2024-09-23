@@ -14,6 +14,7 @@ class User(UserMixin, db.Model):
     about_me: so.Mapped[Optional[str]] = so.mapped_column(sa.String(140))
     last_seen: so.Mapped[Optional[datetime]] = so.mapped_column(default=lambda: datetime.now(timezone.utc))
     last_chart: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer, default=1)
+    is_admin: so.Mapped[bool] = so.mapped_column(sa.Boolean, default=False)
 
     posts: so.WriteOnlyMapped['Post'] = so.relationship(back_populates='author')
     login_times: so.WriteOnlyMapped['User_Login'] = so.relationship(back_populates='user')
