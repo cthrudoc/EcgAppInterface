@@ -16,7 +16,7 @@ def before_request():
         db.session.commit()
 
 def admin_required(f):
-    @wraps
+    @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated or not current_user.is_admin:
             abort(403)
@@ -24,7 +24,7 @@ def admin_required(f):
     return decorated_function
 
 def admin_prohibited(f):
-    @wraps
+    @wraps(f)
     def decorated_function(*args, **kwargs):
         if current_user.is_admin: 
             abort(403) 
@@ -73,16 +73,16 @@ def logout():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('login'))
+#    if current_user.is_authenticated:
+#        return redirect(url_for('login'))
     form = RegistrationForm()
     if form.validate_on_submit():
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
         db.session.add(user)
         db.session.commit()
-        flash('Congratulations, you are now a registered user!')
-        return redirect(url_for('login'))
+        flash('Użytkownik zarejestrowany')
+        return redirect(url_for('register'))
     return render_template('register.html', title='Register', form=form)
 
 
@@ -243,11 +243,63 @@ def admin():
 
 @app.route('/admin/charts')
 @admin_required
-def admin_wykresy():
+def admin_charts():
     return render_template('admin_charts.html')
 
 
 @app.route('/admin/users')
 @admin_required
 def admin_users():
-    return render_template('admin_users.html')
+
+    ## Pagination
+
+    page = request.args.get( 'page' , 1 , type = int )
+    per_page = 20 
+    offset = (page - 1) * per_page
+    users = db.session.execute(sa.select(User).offset(offset).limit(per_page)).scalars().all() 
+
+    total_users = db.session.query(User).count()
+    total_pages = (total_users-1) // per_page + 1
+
+    next_page = page + 1 if page*per_page < total_users else None 
+    prev_page = page -1 if page >1 else None
+
+    ## Displaying users list
+
+    total_charts = db.session.query(Chart).count()
+
+    users_to_display = []
+    for user in users:
+
+        user_votes = db.session.execute(sa.select(Vote).where(Vote.interacting_user == user.id)).scalars().all() # all user's votes
+        latest_votes_for_chart = {} # dict na najnowsze głosy
+        for vote in user_votes:
+            if vote.chart_id not in latest_votes_for_chart or vote.revision_number > latest_votes_for_chart[vote.chart_id].revision_number: # jeżeli jeszcze nie ma głosu albo głos w aktualnej pętli jest nowszy...
+                latest_votes_for_chart[vote.chart_id] = vote # zapisujemy głos z aktualnej pętli
+        votes_cast = len(latest_votes_for_chart)
+        
+        users_perc_completed = (votes_cast / total_charts) * 100 if total_charts > 0 else 0
+
+        users_to_display.append({
+            'user_id' : user.id , 
+            'user_username' : user.username , 
+            'user_last_seen' : user.last_seen ,
+            'user_last_chart' : user.last_chart , 
+            'user_perc_completed' : round(users_perc_completed, 2)
+        })
+
+    return render_template(
+        'admin_users.html', 
+        users_to_display = users_to_display , 
+        next_page = next_page , prev_page = prev_page , total_pages = total_pages , current_page = page
+        )
+
+@app.route('/admin/users/<int:user_id>')
+@admin_required
+def admin_user_detail(user_id):
+    user = db.session.execute(sa.select(User).where(User.id == user_id)).scalar_one_or_none()
+
+    if user is None:
+        abort(404)
+
+    return render_template('admin_user_detail.html', user=user)
