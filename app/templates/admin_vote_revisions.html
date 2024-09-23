@@ -1,0 +1,27 @@
+{% extends "admin.html" %}
+
+{% block content %}
+<h2>Wersje głosów użytkownika {{ user_id }} dla wykresu {{ chart_id }}</h2>
+
+<table>
+    <caption>Revisions</caption>
+    <thead>
+        <tr>
+            <th scope="col">Revision Number</th>
+            <th scope="col">Vote</th>
+            <th scope="col">Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for revision in revisions %}
+        <tr>
+            <td>{{ revision.revision_number }}</td>
+            <td>{{ revision.user_vote }}</td>
+            <td>{{ revision.vote_time }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ url_for('admin_user_detail', user_id=user_id) }}">Wróć do profilu użytkkownika {{ user_id }}</a>
+{% endblock %}

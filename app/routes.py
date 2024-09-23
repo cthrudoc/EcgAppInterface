@@ -93,7 +93,8 @@ def user(username):
     user = db.first_or_404(sa.select(User).where(User.id == current_user.id))
     username = user.username
 
-    # wyświetlanie listy wykresów i głosy użytkownika 
+    ## wyświetlanie listy wykresów i głosy użytkownika 
+    # paginacja
 
     page = request.args.get( 'page' , 1 , type = int )
     per_page = 20 
@@ -106,13 +107,14 @@ def user(username):
     next_page = page + 1 if page*per_page < total_charts else None 
     prev_page = page - 1 if page >1 else None # jeżeli strona to 1 to nie wyświetlamy strony "zero"
 
-    votes = db.session.execute(sa.select(Vote).where(Vote.interacting_user == user.id)).scalars().all()
-    
+    # tworzenie dict najnowszych głosów (bez powtórzonych głosów)
+    votes = db.session.execute(sa.select(Vote).where(Vote.interacting_user == user.id)).scalars().all()  
     latest_votes_for_chart = {} # dict na najnowsze głosy
     for vote in votes:
         if vote.chart_id not in latest_votes_for_chart or vote.revision_number > latest_votes_for_chart[vote.chart_id].revision_number: # jeżeli jeszcze nie ma głosu albo głos w aktualnej pętli jest nowszy...
             latest_votes_for_chart[vote.chart_id] = vote # zapisujemy głos z aktualnej pętli
     
+    # tworzenie listy wykresów i przypisanie do nich głosów użytkownika
     chart_to_display = []
     for chart in charts:
         requester_vote = latest_votes_for_chart.get(chart.id, None) 
@@ -125,7 +127,7 @@ def user(username):
             "requester_vote": requester_vote
         })
 
-    # wywoływanie numeru ostatniego wykresu : 
+    ## wywoływanie numeru ostatniego wykresu : 
     last_chart = user.last_chart
 
     return render_template(
@@ -298,8 +300,65 @@ def admin_users():
 @admin_required
 def admin_user_detail(user_id):
     user = db.session.execute(sa.select(User).where(User.id == user_id)).scalar_one_or_none()
-
     if user is None:
         abort(404)
 
-    return render_template('admin_user_detail.html', user=user)
+    ## wyświetlanie listy wykresów i głosy użytkownika 
+    # paginacja
+    page = request.args.get( 'page' , 1 , type = int )
+    per_page = 20 
+    offset = (page - 1) * per_page
+    charts = db.session.execute(sa.select(Chart).offset(offset).limit(per_page)).scalars().all() # wczytywanie określonej liczby głosów 
+
+    all_charts = db.session.execute(sa.select(Chart)).scalars().all()
+    total_charts = len(all_charts)
+    total_pages = (total_charts-1) // per_page + 1
+    next_page = page + 1 if page*per_page < total_charts else None 
+    prev_page = page - 1 if page >1 else None # jeżeli strona to 1 to nie wyświetlamy strony "zero"
+
+    # tworzenie dict najnowszych głosów (bez powtórzonych głosów)
+    votes = db.session.execute(sa.select(Vote).where(Vote.interacting_user == user.id)).scalars().all()  
+    latest_votes_for_chart = {} # dict na najnowsze głosy
+    for vote in votes:
+        if vote.chart_id not in latest_votes_for_chart or vote.revision_number > latest_votes_for_chart[vote.chart_id].revision_number: # jeżeli jeszcze nie ma głosu albo głos w aktualnej pętli jest nowszy...
+            latest_votes_for_chart[vote.chart_id] = vote # zapisujemy głos z aktualnej pętli
+    
+    # tworzenie listy wykresów i przypisanie do nich głosów użytkownika
+    chart_to_display = []
+    for chart in charts:
+        requester_vote = latest_votes_for_chart.get(chart.id, None) 
+        if requester_vote is not None:
+            vote_value = requester_vote.user_vote
+            vote_time = requester_vote.vote_time
+        else:
+            vote_value = None
+            vote_time = None
+
+        ## liczenie liczby rewizji dla danego wykresu
+        chart_revisions = db.session.execute(sa.select(Vote).where(Vote.id == chart.id,Vote.interacting_user == user.id)).scalars().all()
+        revision_count = len(chart_revisions)
+
+        chart_to_display.append({
+            "chart_id": chart.id,
+            "requester_vote": vote_value , 
+            "vote_time": vote_time ,
+            "revision_count": revision_count , 
+        })
+
+    return render_template(
+        'admin_user_detail.html' , user=user , 
+        chart_data=chart_to_display 
+        )
+
+@app.route('/admin/users/<int:user_id>/chart/<int:chart_id>/revisions')
+@admin_required
+def admin_vote_revisions(user_id, chart_id):
+    revisions = db.session.execute(sa.select(Vote).where(Vote.id == chart_id,Vote.interacting_user == user_id)).scalars().all()
+
+    if not revisions:
+        abort(404)
+    
+    return render_template(
+        'admin_vote_revisions.html', 
+        revisions = revisions , user_id = user_id , chart_id = chart_id 
+        )
