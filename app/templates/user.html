@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <table>
+        <tr valign="top">
+            <td><h1>User: {{ user.username }}</h1></td>
+            {% if user.about_me %}<p>{{ user.about_me }}</p>{% endif %}
+            {% if user.last_seen %}<p>Last seen on: {{ user.last_seen }}</p>{% endif %}
+            <!---->
+            {% if user == current_user %}
+            <p><a href="{{ url_for('edit_profile') }}">Edit your profile</a></p>
+            {% endif %}
+
+        </tr>
+    </table>
+    <hr>
+    <!-- Wyświetlanie wykresów i głosów użytkownika na nie -->
+    <table>
+        <caption>
+            wykresy użytkownika {{ user.username }}
+        </caption>
+        <thead>
+            <tr>
+            <th scope="col">ID wykresu</th>
+            <th scope="col">Głos</th>
+            <th scope="col">Komentarz</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chart in chart_data %}
+                <tr>
+                    <th scope="row">
+                        <a href="{{ url_for('wykres', chart_id=chart.chart_id) }}">
+                            {{ chart.chart_id }}
+                        </a>
+                    </th>
+                    <td>{{ chart.requester_vote }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div>
+        {% if prev_page %}
+            <a href = "{{ url_for('user', username=user.username , page=prev_page ) }}">Previous</a>
+        {% endif %}
+        <span>
+            Page {{ current_page }} of {{ total_pages }}
+        </span>
+        
+
+        {% if next_page %}
+            <a href="{{ url_for('user', username=user.username , page=next_page ) }}">Next</a>
+        {% endif %}
+    </div>
+
+{% endblock %}

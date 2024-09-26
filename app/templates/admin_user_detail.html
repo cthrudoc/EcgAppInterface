@@ -1,0 +1,51 @@
+{% extends "admin.html" %}
+
+{% block content %}
+    <h2>User Details</h2>
+
+    <p>User ID: {{ user.id }}</p>
+
+
+    <!-- Wyświetlanie wykresów i głosów użytkownika na nie -->
+    <table>
+        <caption>
+            wykresy użytkownika {{ user.username }}
+        </caption>
+        <thead>
+            <tr>
+            <th scope="col">ID wykresu</th>
+            <th scope="col">Głos</th>
+            <th scope="col">Data</th>
+            <th scope="col">Liczba podejść</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chart in chart_data %}
+                <tr>
+                    <th scope="row">{{ chart.chart_id }}</th>
+                    <td>{{ chart.requester_vote }}</td>
+                    <td>{{ chart.vote_time }}</td>
+                    <td>
+                        <a href="{{ url_for('admin_vote_revisions', user_id=user.id, chart_id=chart.chart_id) }}">
+                        {{ chart.revision_count }}
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div>
+        {% if prev_page %}
+            <a href = "{{ url_for('admin_user_detail', user_id=user.id , page=prev_page ) }}">Previous</a>
+        {% endif %}
+        <span>
+            Page {{ current_page }} of {{ total_pages }}
+        </span>
+        {% if next_page %}
+            <a href="{{ url_for('admin_user_detail', user_id=user.id , page=next_page ) }}">Next</a>
+        {% endif %}
+    </div>
+
+
+{% endblock %}

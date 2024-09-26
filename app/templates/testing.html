@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <table>
+        <tr valign="top">
+            <td><h1>User: {{ user.username }}</h1></td>
+            
+            {% for time in times %}
+                <li>{{time}}</li>
+            {% endfor %}
+            
+        </tr>
+    </table>
+    <hr>
+    {% for post in posts %}
+        {% include '_post.html' %}
+    {% endfor %}
+
+    <!-- Testowanie wyświetlania wszystkich wykresó i głosów użytkownika na nie -->
+
+    <table>
+        <caption>
+            wykresy użytkownika {{ user.username }}
+        </caption>
+        <thead>
+            <tr>
+            <th scope="col">ID wykresu</th>
+            <th scope="col">Głos</th>
+            <th scope="col">Komentarz</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chart in chart_data %}
+                <tr>
+                    <th scope="row">
+                        <a href="{{ url_for('wykres', chart_id=chart.chart_id) }}">
+                            {{ chart.chart_id }}
+                        </a>
+                    </th>
+                    <td>{{ chart.requester_vote }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

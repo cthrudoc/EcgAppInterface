@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+    <head>
+        {% if title %}
+        <title>{{ title }} - ECGApp</title>
+        {% else %}
+        <title>ECGApp</title>
+        {% endif %}
+    </head>
+    <body>
+        <div>
+            <a href="{{ url_for('admin') }}">Admin</a>
+            <a href="{{ url_for('testing') }}">Testing</a>
+            <a> || </a>
+            <a href="{{ url_for('admin_charts') }}">Wykresy</a>
+            <a href="{{ url_for('admin_users') }}">Użytkownicy</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+        <hr>
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+        <ul>
+            {% for message in messages %}
+            <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </body>
+</html>

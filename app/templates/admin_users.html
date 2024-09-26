@@ -1,0 +1,43 @@
+{% extends "admin.html" %}
+
+{% block content %}
+<div>
+    <a href="{{ url_for('register') }}">Zarejestruj użytkownika</a>
+</div>
+<table>
+    <caption>
+        Użytkownicy
+    </caption>
+    <thead>
+        <tr>
+        <th scope="col">ID </th>
+        <td scope="col">Login</td>
+        <td scope="col">Ostatnie logowanie</td>
+        <td scope="col">Ostatni wykres</td>
+        <td scope="col">% ocenionych</td>
+        </tr>
+    </thead>
+    <tbody>
+        {% for user in users_to_display %}
+            <tr>
+                <th scope="row"><a href="{{ url_for('admin_user_detail', user_id=user.user_id) }}">{{ user.user_id }}</a></th>
+                <td>{{ user.user_username }}</td>
+                <td>{{ user.user_last_seen }}</td>
+                <td>{{ user.user_last_chart }}</td>
+                <td>{{ user.user_perc_completed }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div>
+    {% if prev_page %}
+        <a href = "{{ url_for('user', username=user.username , page=prev_page ) }}">Previous</a>
+    {% endif %}
+    <span>Page {{ current_page }} of {{ total_pages }}</span>
+    {% if next_page %}
+        <a href="{{ url_for('user', username=user.username , page=next_page ) }}">Next</a>
+    {% endif %}
+</div>
+
+{% endblock %}
