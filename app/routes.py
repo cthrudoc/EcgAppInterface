@@ -9,6 +9,9 @@ from app.forms import LoginForm, RegistrationForm, EditProfileForm
 from app.models import User, User_Login, Chart, Vote, Post
 from datetime import datetime, timezone
 
+def timeformat(dt):
+    return dt.strftime('%H:%M, %d:%m:%Y')
+
 @app.before_request
 def before_request():
     if current_user.is_authenticated:
@@ -243,17 +246,11 @@ def admin():
     return render_template("admin.html")
 
 
-@app.route('/admin/charts')
-@admin_required
-def admin_charts():
-    return render_template('admin_charts.html')
-
-
 @app.route('/admin/users')
 @admin_required
 def admin_users():
 
-    ## Pagination
+    ## Paginacja
 
     page = request.args.get( 'page' , 1 , type = int )
     per_page = 20 
@@ -266,7 +263,7 @@ def admin_users():
     next_page = page + 1 if page*per_page < total_users else None 
     prev_page = page -1 if page >1 else None
 
-    ## Displaying users list
+    ## Wyświetlanie listy użytkowników
 
     total_charts = db.session.query(Chart).count()
 
@@ -322,6 +319,7 @@ def admin_user_detail(user_id):
     for vote in votes:
         if vote.chart_id not in latest_votes_for_chart or vote.revision_number > latest_votes_for_chart[vote.chart_id].revision_number: # jeżeli jeszcze nie ma głosu albo głos w aktualnej pętli jest nowszy...
             latest_votes_for_chart[vote.chart_id] = vote # zapisujemy głos z aktualnej pętli
+
     
     # tworzenie listy wykresów i przypisanie do nich głosów użytkownika
     chart_to_display = []
@@ -335,8 +333,12 @@ def admin_user_detail(user_id):
             vote_time = None
 
         ## liczenie liczby rewizji dla danego wykresu
-        chart_revisions = db.session.execute(sa.select(Vote).where(Vote.id == chart.id,Vote.interacting_user == user.id)).scalars().all()
+        chart_revisions = db.session.execute(sa.select(Vote).where(Vote.chart_id == chart.id,Vote.interacting_user == user.id)).scalars().all()
+        print(chart_revisions)
         revision_count = len(chart_revisions)
+        print(revision_count)
+        print("loop happened")
+
 
         chart_to_display.append({
             "chart_id": chart.id,
@@ -347,13 +349,14 @@ def admin_user_detail(user_id):
 
     return render_template(
         'admin_user_detail.html' , user=user , 
-        chart_data=chart_to_display 
+        chart_data=chart_to_display, 
+        next_page = next_page , prev_page = prev_page , total_pages = total_pages, current_page = page 
         )
 
 @app.route('/admin/users/<int:user_id>/chart/<int:chart_id>/revisions')
 @admin_required
 def admin_vote_revisions(user_id, chart_id):
-    revisions = db.session.execute(sa.select(Vote).where(Vote.id == chart_id,Vote.interacting_user == user_id)).scalars().all()
+    revisions = db.session.execute(sa.select(Vote).where(Vote.chart_id == chart_id,Vote.interacting_user == user_id)).scalars().all()
 
     if not revisions:
         abort(404)
@@ -362,3 +365,70 @@ def admin_vote_revisions(user_id, chart_id):
         'admin_vote_revisions.html', 
         revisions = revisions , user_id = user_id , chart_id = chart_id 
         )
+
+
+
+@app.route('/admin/charts')
+@admin_required
+def admin_charts():
+
+    ## Paginacja
+
+    page = request.args.get( 'page' , 1 , type = int )
+    per_page = 20 
+    offset = (page - 1) * per_page
+    charts = db.session.execute(sa.select(Chart).offset(offset).limit(per_page)).scalars().all() 
+
+    total_charts = db.session.query(User).count()
+    total_pages = (total_charts-1) // per_page + 1
+
+    next_page = page + 1 if page*per_page < total_charts else None 
+    prev_page = page -1 if page >1 else None
+
+    ## Wyświetlanie listy użytkowników
+
+    total_charts = db.session.query(Chart).count()
+
+    charts_to_display = []
+    for chart in charts:
+
+        chart_votes_all = db.session.execute(sa.select(Vote).where(Vote.chart_id == chart.id)).scalars().all() # all chart's votes
+        latest_votes_for_chart = {} # dict na najnowsze głosy
+        for vote in chart_votes_all:
+            if vote.chart_id not in latest_votes_for_chart or vote.revision_number > latest_votes_for_chart[vote.chart_id].revision_number: 
+                latest_votes_for_chart[vote.chart_id] = vote
+        
+        chart_votes_count = len(latest_votes_for_chart)
+        chart_votes_0 = 0
+        chart_votes_1 = 0
+        for vote in latest_votes_for_chart.values():
+            if vote.user_vote == 0:
+                chart_votes_0 += 1
+            else:
+                chart_votes_1 += 1
+        
+        chart_votes_0_perc = (chart_votes_0 / chart_votes_count) * 100 if chart_votes_count > 0 else 0
+        chart_votes_1_perc = (chart_votes_1 / chart_votes_count) * 100 if chart_votes_count > 0 else 0
+
+        
+        # users_perc_completed = (votes_cast / total_charts) * 100 if total_charts > 0 else 0
+
+        charts_to_display.append({
+            'chart_id' : chart.id ,
+            'chart_votes_count' : chart_votes_count ,  
+            'chart_votes_0' : chart_votes_0 , 
+            'chart_votes_1' : chart_votes_1 ,
+            'chart_votes_0_perc' : round(chart_votes_0_perc, 2) , 
+            'chart_votes_1_perc' : round(chart_votes_1_perc, 2)
+        })
+
+    return render_template(
+        'admin_charts.html', 
+        charts_to_display = charts_to_display
+        )
+
+
+@app.route('/admin/charts/<int:chart_id>')
+@admin_required
+def admin_charts_detail(chart_id):
+    return render_template(admin_charts_detail)

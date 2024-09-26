@@ -2,6 +2,46 @@
 
 {% block content %}
 
-
-
+</div>
+<table>
+    <caption>
+        Wykresy
+    </caption>
+    <thead>
+        <tr>
+        <th scope="col">ID </th>
+        <td scope="col">Liczba głosów</td>
+        <td scope="col">Głosy na nie</td>
+        <td scope="col">Głosy na tak</td>
+        <td scope="col">% na nie</td>
+        <td scope="col">% na tak</td>
+        </tr>
+    </thead>
+    <tbody>
+        {% for chart in charts_to_display %}
+            <tr>
+                <th scope="row"><a href="{{ url_for('admin_charts_detail', chart_id=chart.chart_id) }}">{{ chart.chart_id }}</a></th>
+                {# <th>{{ chart.chart_id }}</th> #}
+                <td>{{ chart.chart_votes_count }}</td>
+                <td>{{ chart.chart_votes_0 }}</td>
+                <td>{{ chart.chart_votes_1 }}</td>
+                <td>{{ chart.chart_votes_0_perc }}</td>
+                <td>{{ chart.chart_votes_1_perc }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{#
+    <div>
+        {% if prev_page %}
+            <a href = "{{ url_for('admin_charts' , page=prev_page ) }}">Previous</a>
+        {% endif %}
+        <span>
+            Page {{ current_page }} of {{ total_pages }}
+        </span>
+        {% if next_page %}
+            <a href="{{ url_for('admin_charts' , page=next_page ) }}">Next</a>
+        {% endif %}
+    </div>
+#}
 {% endblock %}
